@@ -7,23 +7,21 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gilbertom/go-rate-limiter/internal/dto"
 	"github.com/go-redis/redis/v8"
 )
 
 // RateLimiter is a middleware that limits the rate of incoming requests.
-func RateLimiter(ctx context.Context, rdb *redis.Client, maxAllowedByIP int64, next http.Handler) http.Handler {
+func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Context().Value("Token")
 		ip := r.Context().Value("IP")
-		if ip == nil {
-			fmt.Println("IP == nil")
-		}
-		
-		key := "rate_limiter:" + ip.(string)
+		key := "rate_limiter - " + ip.(string) + " - " + token.(string)
 
 		// Increment the request count
 		count, err := rdb.Incr(ctx, key).Result()
 		if err != nil {
-			log.Fatal("Erro on incremenet", err)
+			log.Fatal("Erro on incremenet", err.Error())
 			ct := context.WithValue(r.Context(), "isError", err)
 			r = r.WithContext(ct)
 		}
@@ -38,13 +36,50 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, maxAllowedByIP int64, n
 			}
 		}
 		
-		if count > maxAllowedByIP {
+		maxRequestsBySecond := getMaxRequestsBySecond(env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
+
+		if int(count) > maxRequestsBySecond {
 			ct := context.WithValue(r.Context(), "isBlock", true)
 			r = r.WithContext(ct)
+
+			// Get the value of the key
+			val, err := rdb.Get(ctx, key).Result()
+			if err != nil {
+				log.Fatal("Error on get", err)
+				ct := context.WithValue(r.Context(), "isError", err)
+				r = r.WithContext(ct)
+			}
+			fmt.Println("VAL", val)
+
+			// Get TTL from redis
+			ttl, err := rdb.TTL(ctx, key).Result()
+			if err != nil {
+				log.Fatal("Error on get TTL", err)
+				ct := context.WithValue(r.Context(), "isError", err)
+				r = r.WithContext(ct)
+			}
+			fmt.Println("TTL", ttl)
+
+			if ttl <= 1 {
+				fmt.Println("time.Second * time.Duration(env.TimeToReleaseRequests)", time.Second * time.Duration(env.TimeToReleaseRequests))
+				err = rdb.Expire(ctx, key, time.Second * time.Duration(env.TimeToReleaseRequests)).Err()
+				if err != nil {
+					log.Fatal("Error on expire Time to Release", err)
+					ct := context.WithValue(r.Context(), "isError", err)
+					r = r.WithContext(ct)
+				}
+			}
 		} else {
 			ct := context.WithValue(r.Context(), "isBlock", false)
 			r = r.WithContext(ct)
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func getMaxRequestsBySecond(maxReqAllowedByIP, maxReqAllowedByToken int) (maxRequestsBySecond int) {
+	if maxReqAllowedByIP >= maxReqAllowedByToken {
+		return maxReqAllowedByIP
+	}
+	return maxReqAllowedByToken
 }

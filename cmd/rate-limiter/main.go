@@ -36,7 +36,14 @@ func main() {
 		ResponseHandler(ctx, w, r)
 	})
 
-	wrappedHandler := middlewares.GetIPfromClient(middlewares.ProcessHandler(middlewares.RateLimiter(ctx, rdb, env.MaxRequestsAllowedByIP, mux)))
+	// wrappedHandler := middlewares.GetTokenFromHeader(middlewares.GetIPfromClient(middlewares.ProcessHandler(middlewares.RateLimiter(ctx, rdb, env, mux))))
+	wrappedHandler := middlewares.GetTokenFromHeader(
+    middlewares.GetIPfromClient(
+        middlewares.ProcessHandler(
+            middlewares.RateLimiter(ctx, rdb, env, mux),
+        ),
+    ),
+	)
 
 	fmt.Println("Listening on port", env.ServerPort)
 	http.ListenAndServe(":" + env.ServerPort, wrappedHandler)
