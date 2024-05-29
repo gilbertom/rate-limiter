@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,15 +18,15 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 		key := "rate_limiter - " + ip.(string) + " - " + token.(string)
 
 		// Increment the request count
-		count, err := rdb.Incr(ctx, key).Result()
+		countRequest, err := rdb.Incr(ctx, key).Result()
 		if err != nil {
-			log.Fatal("Erro on incremenet", err.Error())
+			log.Fatal("Error on incremenet request", err.Error())
 			ct := context.WithValue(r.Context(), "isError", err)
 			r = r.WithContext(ct)
 		}
 
 		// Set TTL for the key if it's the first request
-		if count == 1 {
+		if countRequest == 1 {
 			err := rdb.Expire(ctx, key, time.Second).Err()
 			if err != nil {
 				log.Fatal("Error on expire", err)
@@ -37,38 +36,22 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 		}
 		
 		maxRequestsBySecond := getMaxRequestsBySecond(env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
-
-		if int(count) > maxRequestsBySecond {
+		
+		if int(countRequest) == (maxRequestsBySecond + 1) {
 			ct := context.WithValue(r.Context(), "isBlock", true)
 			r = r.WithContext(ct)
 
-			// Get the value of the key
-			val, err := rdb.Get(ctx, key).Result()
+			err = rdb.Expire(ctx, key, time.Second * time.Duration(env.TimeToReleaseRequests)).Err()
 			if err != nil {
-				log.Fatal("Error on get", err)
+				log.Fatal("Error on expire Time to Release", err)
 				ct := context.WithValue(r.Context(), "isError", err)
 				r = r.WithContext(ct)
 			}
-			fmt.Println("VAL", val)
-
-			// Get TTL from redis
-			ttl, err := rdb.TTL(ctx, key).Result()
-			if err != nil {
-				log.Fatal("Error on get TTL", err)
-				ct := context.WithValue(r.Context(), "isError", err)
-				r = r.WithContext(ct)
-			}
-			fmt.Println("TTL", ttl)
-
-			if ttl <= 1 {
-				fmt.Println("time.Second * time.Duration(env.TimeToReleaseRequests)", time.Second * time.Duration(env.TimeToReleaseRequests))
-				err = rdb.Expire(ctx, key, time.Second * time.Duration(env.TimeToReleaseRequests)).Err()
-				if err != nil {
-					log.Fatal("Error on expire Time to Release", err)
-					ct := context.WithValue(r.Context(), "isError", err)
-					r = r.WithContext(ct)
-				}
-			}
+		}
+		
+		if int(countRequest) > maxRequestsBySecond {
+			ct := context.WithValue(r.Context(), "isBlock", true)
+			r = r.WithContext(ct)
 		} else {
 			ct := context.WithValue(r.Context(), "isBlock", false)
 			r = r.WithContext(ct)
