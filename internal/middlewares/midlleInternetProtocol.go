@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -13,9 +14,11 @@ import (
 // RateLimiter is a middleware that limits the rate of incoming requests.
 func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := r.Context().Value("Token")
-		ip := r.Context().Value("IP")
-		key := "rate_limiter - " + ip.(string) + " - " + token.(string)
+		ip := r.Context().Value("IP").(string)
+		token := r.Context().Value("Token").(string)
+		key := "rate_limiter - " + ip + " - " + token
+		maxRequestsBySecond := getMaxRequestsBySecond(token, env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
+		fmt.Println("maxRequestsBySecond", maxRequestsBySecond)
 
 		// Increment the request count
 		countRequest, err := rdb.Incr(ctx, key).Result()
@@ -27,15 +30,13 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 
 		// Set TTL for the key if it's the first request
 		if countRequest == 1 {
-			err := rdb.Expire(ctx, key, time.Second).Err()
+			err := rdb.Expire(ctx, key, time.Second * time.Duration(maxRequestsBySecond)).Err()
 			if err != nil {
 				log.Fatal("Error on expire", err)
 				ct := context.WithValue(r.Context(), "isError", err)
 				r = r.WithContext(ct)
 			}
 		}
-		
-		maxRequestsBySecond := getMaxRequestsBySecond(env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
 		
 		if int(countRequest) == (maxRequestsBySecond + 1) {
 			ct := context.WithValue(r.Context(), "isBlock", true)
@@ -60,9 +61,10 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 	})
 }
 
-func getMaxRequestsBySecond(maxReqAllowedByIP, maxReqAllowedByToken int) (maxRequestsBySecond int) {
-	if maxReqAllowedByIP >= maxReqAllowedByToken {
-		return maxReqAllowedByIP
+func getMaxRequestsBySecond(token string, maxReqAllowedByIP, maxReqAllowedByToken int) (maxRequestsBySecond int) {
+	if token != "token not present" && maxReqAllowedByToken >= maxReqAllowedByIP {
+		return maxReqAllowedByToken
 	}
-	return maxReqAllowedByToken
+	fmt.Println("maxReqAllowedByIP", maxReqAllowedByIP)
+	return maxReqAllowedByIP
 }

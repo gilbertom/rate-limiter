@@ -25,9 +25,6 @@ func main() {
 
 	env := config.LoadEnv()
 
-	//GIBA
-	// fmt.Println(env)
-
 	// Create a new Redis Client
 	rdb := infra.NewRedisClient(env.RedisAddr)
 
@@ -36,7 +33,6 @@ func main() {
 		ResponseHandler(ctx, w, r)
 	})
 
-	// wrappedHandler := middlewares.GetTokenFromHeader(middlewares.GetIPfromClient(middlewares.ProcessHandler(middlewares.RateLimiter(ctx, rdb, env, mux))))
 	wrappedHandler := middlewares.GetTokenFromHeader(
     middlewares.GetIPfromClient(
         middlewares.ProcessHandler(
