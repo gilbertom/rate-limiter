@@ -6,8 +6,7 @@ import (
 
 // NewRedisClient creates a new Redis client.
 func NewRedisClient(redisAddr string) *redis.Client {
-	rdb := redis.NewClient(&redis.Options{
+	return redis.NewClient(&redis.Options{
         Addr: redisAddr,
   })
-	return rdb
 }

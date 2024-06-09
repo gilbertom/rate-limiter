@@ -18,7 +18,6 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 		token := r.Context().Value("Token").(string)
 		key := "rate_limiter - " + ip + " - " + token
 		maxRequestsBySecond := getMaxRequestsBySecond(token, env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
-		fmt.Println("maxRequestsBySecond", maxRequestsBySecond)
 
 		// Increment the request count
 		countRequest, err := rdb.Incr(ctx, key).Result()
@@ -42,7 +41,7 @@ func RateLimiter(ctx context.Context, rdb *redis.Client, env dto.Env, next http.
 			ct := context.WithValue(r.Context(), "isBlock", true)
 			r = r.WithContext(ct)
 
-			err = rdb.Expire(ctx, key, time.Second * time.Duration(env.TimeToReleaseRequests)).Err()
+			err = rdb.Expire(ctx, key, time.Second * time.Duration(getTimeToReleaseRequest(env))).Err()
 			if err != nil {
 				log.Fatal("Error on expire Time to Release", err)
 				ct := context.WithValue(r.Context(), "isError", err)
@@ -67,4 +66,11 @@ func getMaxRequestsBySecond(token string, maxReqAllowedByIP, maxReqAllowedByToke
 	}
 	fmt.Println("maxReqAllowedByIP", maxReqAllowedByIP)
 	return maxReqAllowedByIP
+}
+
+func getTimeToReleaseRequest(env dto.Env) (timeToReleaseRequests int) {
+	if env.OnRequestsExceededBlockBy == "IP" {
+		return env.TimeToReleaseRequestsIP
+	}
+	return env.TimeToReleaseRequestsToken
 }

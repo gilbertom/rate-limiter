@@ -25,7 +25,12 @@ func LoadEnv() dto.Env{
 		panic(err)
 	}
 
-	timeToReleaseRequests, err := strconv.Atoi(os.Getenv("TIME_TO_RELEASE_REQUESTS"))
+	timeToReleaseRequestsIP, err := strconv.Atoi(os.Getenv("TIME_TO_RELEASE_REQUESTS_IP"))
+	if err != nil {
+		panic(err)
+	}
+
+	timeToReleaseRequestsToken, err := strconv.Atoi(os.Getenv("TIME_TO_RELEASE_REQUESTS_TOKEN"))
 	if err != nil {
 		panic(err)
 	}
@@ -37,6 +42,7 @@ func LoadEnv() dto.Env{
 		MaxRequestsAllowedByToken:  maxAllowedByToken,
 		LimitRequestsByIP:          limitRequestsByIP,
 		OnRequestsExceededBlockBy:  os.Getenv("ON_REQUEST_EXCEEDED_BLOCK_BY"),
-		TimeToReleaseRequests:      timeToReleaseRequests,
+		TimeToReleaseRequestsIP:    timeToReleaseRequestsIP,
+		TimeToReleaseRequestsToken: timeToReleaseRequestsToken,
 	}
 }
