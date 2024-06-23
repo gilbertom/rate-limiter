@@ -11,22 +11,26 @@ import (
 	formatresponse "github.com/gilbertom/go-rate-limiter/internal/formatResponse"
 	"github.com/gilbertom/go-rate-limiter/internal/infra"
 	"github.com/gilbertom/go-rate-limiter/internal/middlewares"
+	usecases "github.com/gilbertom/go-rate-limiter/internal/usecase"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	var ctx = context.Background()
+	ctx := context.Background()
 	
-	// Loads environment variables from the file . env
 	err := godotenv.Load()
 	if err != nil {
-			log.Fatalf("Error loading file . env: %v", err)
+			log.Fatalf("Error trying to load env variables: %v", err)
 	}
 
 	env := config.LoadEnv()
 
-	// Create a new Redis Client
-	rdb := infra.NewRedisClient(env.RedisAddr)
+	redisStorage, err := infra.NewRedisStorage(env.RedisAddr)
+	if err != nil {
+			log.Fatalf("Error while creating Redis storage: %v", err)
+	}
+
+	redisUseCase := usecases.NewStorageUseCase(redisStorage)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +40,7 @@ func main() {
 	wrappedHandler := middlewares.GetTokenFromHeader(
     middlewares.GetIPfromClient(
         middlewares.ProcessHandler(
-            middlewares.RateLimiter(ctx, rdb, env, mux),
+            middlewares.RateLimiter(ctx, redisUseCase, env, mux),
         ),
     ),
 	)
