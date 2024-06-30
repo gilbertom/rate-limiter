@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gilbertom/go-rate-limiter/internal/dto"
 	usecases "github.com/gilbertom/go-rate-limiter/internal/usecase"
@@ -26,50 +28,62 @@ func processHateLimiter(
 	r *http.Request,
 	env dto.Env,
 	storageUseCase *usecases.StorageUseCase,
-) *http.Request{
+) *http.Request {
 	ip := r.Context().Value("IP").(string)
 	token := r.Context().Value("Token").(string)
-	key := "rate_limiter - " + ip + " - " + token
+	
 	maxRequestsBySecond := getMaxRequestsBySecond(token, env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
 
+	// Verifica se IP bloqueado
+	key := "ip " + "bloqueado"
+	found, _, err := storageUseCase.FindByKey(key)
+	if err != nil {
+		log.Fatal("Error on find keys with prefix", err.Error())
+		ct := context.WithValue(r.Context(), "isError", err)
+		return r.WithContext(ct)
+	}
+	if found {
+		ct := context.WithValue(r.Context(), "isBlock", true)
+		return r.WithContext(ct)
+	}
+
 	// Increment the request count
+	key = "rate_limiter - " + ip + " - " + token + strconv.Itoa(time.Now().Second())
 	countRequest, err := storageUseCase.Incr(key)
 	if err != nil {
 		log.Fatal("Error on incremenet request", err.Error())
 		ct := context.WithValue(r.Context(), "isError", err)
-		r = r.WithContext(ct)
+		return r.WithContext(ct)
 	}
 
-	// Set TTL for the key if it's the first request
-	if countRequest == 1 {
-		err := storageUseCase.Expire(key, maxRequestsBySecond)
+	// Set the expiration time for the key
+	err = storageUseCase.Expire(key, 1)
+	if err != nil {
+		log.Fatal("Error on expire", err)
+		ct := context.WithValue(r.Context(), "isError", err)
+		return r.WithContext(ct)
+	}
+
+	if int(countRequest) == maxRequestsBySecond + 1 {
+		key := "ip " + "bloqueado"
+		_, err := storageUseCase.Incr(key)
+		if err != nil {
+			log.Fatal("Error on incremenet request", err.Error())
+			ct := context.WithValue(r.Context(), "isError", err)
+			return r.WithContext(ct)
+		}
+		err = storageUseCase.Expire(key, getTimeToReleaseRequest(env))
 		if err != nil {
 			log.Fatal("Error on expire", err)
 			ct := context.WithValue(r.Context(), "isError", err)
-			r = r.WithContext(ct)
+			return r.WithContext(ct)
 		}
-	}
-	
-	if int(countRequest) == (maxRequestsBySecond + 1) {
 		ct := context.WithValue(r.Context(), "isBlock", true)
-		r = r.WithContext(ct)
+		return r.WithContext(ct)
+	}
 
-		err = storageUseCase.Expire(key, getTimeToReleaseRequest(env))
-		if err != nil {
-			log.Fatal("Error on expire Time to Release", err)
-			ct := context.WithValue(r.Context(), "isError", err)
-			r = r.WithContext(ct)
-		}
-	}
-	
-	if int(countRequest) > maxRequestsBySecond {
-		ct := context.WithValue(r.Context(), "isBlock", true)
-		r = r.WithContext(ct)
-	} else {
-		ct := context.WithValue(r.Context(), "isBlock", false)
-		r = r.WithContext(ct)
-	}
-	return r
+	ct := context.WithValue(r.Context(), "isBlock", false)
+	return r.WithContext(ct)
 }
 
 func getMaxRequestsBySecond(token string, maxReqAllowedByIP, maxReqAllowedByToken int) (maxRequestsBySecond int) {
