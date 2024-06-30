@@ -3,7 +3,8 @@ package dto
 // Env represents the environment configuration.
 type Env struct {
 	ServerPort                    string      // Porta do Server
-	RedisAddr                     string      // Host e Port do Redis
+	RedisAddr                     string      // Host do Redis
+	RedisPort                     string      // Port do Redis
 	MaxRequestsAllowedByIP        int         // Quantidade de requests permitida por IP
 	MaxRequestsAllowedByToken     int         // Quantidade de requests permitida por Token
 	LimitRequestsByIP             bool        // Deve ser possível configurar o rate limiter tanto para limitação por IP quanto por token de acesso. Se true é por IP senão é por Token

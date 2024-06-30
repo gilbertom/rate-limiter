@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gilbertom/go-rate-limiter/internal/config"
 	formatresponse "github.com/gilbertom/go-rate-limiter/internal/formatResponse"
@@ -18,14 +19,16 @@ import (
 func main() {
 	ctx := context.Background()
 	
-	err := godotenv.Load()
-	if err != nil {
-			log.Fatalf("Error trying to load env variables: %v", err)
+	if os.Getenv("SERVER_PORT") == "" {
+			err := godotenv.Load()
+			if err != nil {
+					log.Fatalf("Error trying to load env variables: %v", err)
+			}
 	}
 
 	env := config.LoadEnv()
 
-	redisStorage, err := infra.NewRedisStorage(env.RedisAddr)
+	redisStorage, err := infra.NewRedisStorage(env.RedisAddr, env.RedisPort)
 	if err != nil {
 			log.Fatalf("Error while creating Redis storage: %v", err)
 	}

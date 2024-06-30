@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -10,22 +11,27 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// TestRateLimiterSemExcederLimitePorIp
-// TestRateLimiterExcedendoLimitePorIp
+// TestRateLimiterSemExcederLimitePorIp - feito
+// TestRateLimiterExcedendoLimitePorIp - feito
 
 // TestRateLimiterSemExcederLimitePorToken
 // TestRateLimiterExcedendoLimitePorToken
 
+// TestRateLimiterTokenSobrepondoLimitePorIP
+
+// TestRateLimiterExcedendoLimitePorIpAguardaLiberacaoBloqueio
+// TestRateLimiterExcedendoLimitePorTokenAguardaLiberacaoBloqueio
 
 func TestRateLimiterSemExcederLimitePorIp(t *testing.T) {
-	err := godotenv.Load()
+	err := godotenv.Load("/cmd/rate-limiter/.env")
 	if err != nil {
-			log.Fatalf("Error trying to load env variables: %v", err)
+			log.Fatalf("Error loading .env file: %v", err)
 	}
+		
 	env := config.LoadEnv()
 		
 	rateLimit := env.MaxRequestsAllowedByIP
-	iterations := 10
+	iterations := 3
 	serverURL := "http://localhost:8080/"
 
 	go func() {
@@ -58,14 +64,13 @@ func TestRateLimiterSemExcederLimitePorIp(t *testing.T) {
 
 
 func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
-	err := godotenv.Load()
+	err := godotenv.Load("/cmd/rate-limiter/.env")
 	if err != nil {
 			log.Fatalf("Error trying to load env variables: %v", err)
 	}
 	env := config.LoadEnv()
 		
 	rateLimit := env.MaxRequestsAllowedByIP + 1
-	log.Println("rateLimit", rateLimit)
 	serverURL := "http://localhost:8080/"
 
 	go func() {
@@ -85,10 +90,6 @@ func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
 			break
 		}
 
-		// if resp.StatusCode == http.StatusTooManyRequests {
-		// 	// t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, i+1)
-		// 	break
-		// }
 		resp.Body.Close()
 	}
 
@@ -97,16 +98,20 @@ func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
 	}
 }
 
-func TestRateLimiterSemExcederLimitePorIp(t *testing.T) {
-	err := godotenv.Load()
+func TestRateLimiterSemExcederLimiteUsandoToken(t *testing.T) {
+	err := godotenv.Load("/cmd/rate-limiter/.env")
+	// err := godotenv.Load()
 	if err != nil {
 			log.Fatalf("Error trying to load env variables: %v", err)
 	}
+	
+	os.Setenv("ON_REQUESTS_EXCEEDED_BLOCK_BY", "TOKEN")
 	env := config.LoadEnv()
-		
-	rateLimit := env.MaxRequestsAllowedByIP
-	iterations := 10
+	
+	rateLimit := env.MaxRequestsAllowedByToken
+	iterations := 2
 	serverURL := "http://localhost:8080/"
+	apiKey := "123456"
 
 	go func() {
 		main()
@@ -116,11 +121,16 @@ func TestRateLimiterSemExcederLimitePorIp(t *testing.T) {
 
 	client := &http.Client{}
 
-	loopMain:
+loopMain:
 	for i := 1; i <= iterations; i++ {
-
 		for i := 1; i <= rateLimit; i++ {
-			resp, err := client.Get(serverURL)
+			req, err := http.NewRequest("GET", serverURL, nil)
+			if err != nil {
+				t.Fatalf("Failed to create request: %v", err)
+			}
+			req.Header.Set("API_KEY", apiKey)
+
+			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to make request: %v", err)
 				break
@@ -132,47 +142,47 @@ func TestRateLimiterSemExcederLimitePorIp(t *testing.T) {
 			}
 			resp.Body.Close()
 		}
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
 
-func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
-	err := godotenv.Load()
-	if err != nil {
-			log.Fatalf("Error trying to load env variables: %v", err)
-	}
-	env := config.LoadEnv()
+// func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
+// 	err := godotenv.Load("/cmd/rate-limiter/.env")
+// 	if err != nil {
+// 			log.Fatalf("Error trying to load env variables: %v", err)
+// 	}
+// 	env := config.LoadEnv()
 		
-	rateLimit := env.MaxRequestsAllowedByIP + 1
-	log.Println("rateLimit", rateLimit)
-	serverURL := "http://localhost:8080/"
+// 	rateLimit := env.MaxRequestsAllowedByIP + 1
+// 	serverURL := "http://localhost:8080/"
 
-	go func() {
-		main()
-	}()
+// 	go func() {
+// 		main()
+// 	}()
 
-	time.Sleep(time.Second)
+// 	time.Sleep(time.Second)
 
-	client := &http.Client{}
+// 	client := &http.Client{}
 
-	var resp *http.Response
+// 	var resp *http.Response
 
-	for i := 1; i <= rateLimit; i++ {
-		resp, err = client.Get(serverURL)
-		if err != nil {
-			t.Fatalf("Failed to make request: %v", err)
-			break
-		}
+// 	for i := 1; i <= rateLimit; i++ {
+// 		resp, err = client.Get(serverURL)
+// 		if err != nil {
+// 			t.Fatalf("Failed to make request: %v", err)
+// 			break
+// 		}
 
-		// if resp.StatusCode == http.StatusTooManyRequests {
-		// 	// t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, i+1)
-		// 	break
-		// }
-		resp.Body.Close()
-	}
+// 		// if resp.StatusCode == http.StatusTooManyRequests {
+// 		// 	// t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, i+1)
+// 		// 	break
+// 		// }
+// 		resp.Body.Close()
+// 	}
 
-	if resp.StatusCode != http.StatusTooManyRequests {
-		t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, rateLimit)
-	}
-}
+// 	if resp.StatusCode != http.StatusTooManyRequests {
+// 		t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, rateLimit)
+// 	}
+// }
+

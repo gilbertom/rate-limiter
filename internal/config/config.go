@@ -37,7 +37,8 @@ func LoadEnv() dto.Env{
 
 	return dto.Env{
 		ServerPort:                 os.Getenv("SERVER_PORT"),
-		RedisAddr:                  os.Getenv("REDIS_ADDR"),
+		RedisAddr:                  os.Getenv("REDIS_HOST"),
+		RedisPort:                  os.Getenv("REDIS_PORT"),
 		MaxRequestsAllowedByIP:     maxAllowedByIP,
 		MaxRequestsAllowedByToken:  maxAllowedByToken,
 		LimitRequestsByIP:          limitRequestsByIP,

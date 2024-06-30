@@ -14,9 +14,9 @@ type RedisStorage struct {
 }
 
 // NewRedisStorage creates a new instance of RedisStorage.
-func NewRedisStorage(addr string) (*RedisStorage, error) {
+func NewRedisStorage(addr, port string) (*RedisStorage, error) {
     rdb := redis.NewClient(&redis.Options{
-        Addr: addr,
+        Addr: addr+":"+port,
     })
     
     ctx := context.Background()
@@ -24,6 +24,9 @@ func NewRedisStorage(addr string) (*RedisStorage, error) {
     if err != nil {
         return nil, err
     }
+
+    // Fushdb on redis
+    rdb.FlushDB(ctx)
 
     return &RedisStorage{
         client: rdb,

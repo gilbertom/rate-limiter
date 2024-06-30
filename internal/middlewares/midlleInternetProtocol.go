@@ -35,7 +35,7 @@ func processHateLimiter(
 	maxRequestsBySecond := getMaxRequestsBySecond(token, env.MaxRequestsAllowedByIP, env.MaxRequestsAllowedByToken)
 
 	// Verifica se IP bloqueado
-	key := "ip " + "bloqueado"
+	key := ip + " - bloqueado"
 	found, _, err := storageUseCase.FindByKey(key)
 	if err != nil {
 		log.Fatal("Error on find keys with prefix", err.Error())
@@ -65,7 +65,7 @@ func processHateLimiter(
 	}
 
 	if int(countRequest) == maxRequestsBySecond + 1 {
-		key := "ip " + "bloqueado"
+		key := ip + " - bloqueado"
 		_, err := storageUseCase.Incr(key)
 		if err != nil {
 			log.Fatal("Error on incremenet request", err.Error())

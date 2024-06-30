@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GO_ENV=test
+    command: ["go", "test", "-v", "./..."]
+
   redis:
     image: redis:latest
     container_name: redis-container
