@@ -16,4 +16,4 @@ COPY .env /cmd/rate-limiter/.env
 #COPY .env /app/cmd/rate-limiter/.env
 
 # Execute o teste
-CMD ["go", "test", "-v", "./..."]
+CMD ["go", "test", "-v", "-count=1", "./..."]

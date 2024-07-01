@@ -191,6 +191,7 @@ func TestRateLimiterExcedendoLimiteUsandoToken(t *testing.T) {
 
 func TestRateLimiterExcedendoLimitePorIpAguardaLiberacaoBloqueio(t *testing.T) {
 	err := godotenv.Load("/cmd/rate-limiter/.env")
+	// err := godotenv.Load()
 	if err != nil {
 			log.Fatalf("Error trying to load env variables: %v", err)
 	}
@@ -215,7 +216,6 @@ func TestRateLimiterExcedendoLimitePorIpAguardaLiberacaoBloqueio(t *testing.T) {
 			t.Fatalf("Failed to make request: %v", err)
 			break
 		}
-
 		resp.Body.Close()
 	}
 
@@ -223,6 +223,18 @@ func TestRateLimiterExcedendoLimitePorIpAguardaLiberacaoBloqueio(t *testing.T) {
 		t.Errorf("Expected status 429 but got %v on request %d", resp.StatusCode, rateLimit)
 	}
 
-	log.Printf("Aguardando %d segundos até ocorrer o desbloqueio por IP", env.TimeToReleaseRequestsIP)
-	time.Sleep(time.Duration(env.TimeToReleaseRequestsIP))
+	timeWait := env.TimeToReleaseRequestsIP + 0
+	log.Printf("Aguardando %d segundos até ocorrer o desbloqueio por IP", timeWait)
+	time.Sleep(time.Duration(timeWait)* time.Second)
+	log.Printf("Aguardado %d segundos", timeWait)
+
+	resp, err = client.Get(serverURL)
+	if err != nil {
+		t.Fatalf("Failed to make request: %v", err)
+	}
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK but got %v on request %d", resp.StatusCode, rateLimit)
+	}
 }
