@@ -1,9 +1,7 @@
 # Makefile
 
-# Nome do serviço Redis no Docker Compose
 REDIS_SERVICE = redis
 
-# Comando para executar o Redis CLI no contêiner Redis
 REDIS_CLI = docker-compose exec $(REDIS_SERVICE) redis-cli
 
 .PHONY: flushdb

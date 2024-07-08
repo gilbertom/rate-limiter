@@ -52,7 +52,7 @@ Lista de variáveis para configuração do Rate Limiter encontrado no arquivo .e
 Para instalar o Rate Limiter, siga os passos abaixo:
 
 ```sh
-git clone https://github.com/gilbertom/go-rate-limiter
+git clone https://github.com/gilbertom/rate-limiter
 docker-compose up --build
 ```
 
