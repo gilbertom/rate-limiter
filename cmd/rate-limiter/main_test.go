@@ -68,7 +68,6 @@ func TestRateLimiterExcedendoLimitePorIp(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-
 	client := &http.Client{}
 
 	var resp *http.Response
@@ -157,8 +156,8 @@ func TestRateLimiterExcedendoLimiteUsandoToken(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second)
-
 	client := &http.Client{}
+	
 	var resp *http.Response
 
 	for i := 1; i <= rateLimit; i++ {

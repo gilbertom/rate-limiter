@@ -40,13 +40,12 @@ func main() {
 		ResponseHandler(ctx, w, r)
 	})
 
-	wrappedHandler := middlewares.GetTokenFromHeader(
-    middlewares.GetIPfromClient(
-        middlewares.ProcessHandler(
-            middlewares.RateLimiter(ctx, redisUseCase, env, mux),
-        ),
-    ),
-	)
+	wrappedHandler := 
+		middlewares.GetTokenFromHeader(
+    	middlewares.GetIPfromClient(
+				middlewares.RateLimiter(ctx, redisUseCase, env, mux),
+			),
+		)
 
 	fmt.Println("Listening on port", env.ServerPort)
 	http.ListenAndServe(":" + env.ServerPort, wrappedHandler)

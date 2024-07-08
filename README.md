@@ -42,8 +42,10 @@ Lista de variáveis para configuração do Rate Limiter encontrado no arquivo .e
 ## Índice
 
 - [Instalação](#instalação)
-- [Uso](#uso)
+- [Como Usar](#como-usar)
 - [Execução dos Testes Unitários](#execução-dos-testes-unitários)
+- [Contato](#contato)
+- [Agradecimentos](#agradecimentos)
 
 ## Instalação
 
@@ -57,7 +59,7 @@ docker-compose up --build
 Nota: Ao executar o comando `docker-compose up --build`, os testes unitários são executados automaticamente e a aplicação é iniciada, ficando disponível na porta `8080`.
 
 
-## Uso
+## Como Usar
 
 Exemplo de uso:
 ```sh
@@ -89,3 +91,10 @@ Para executar os testes unitários manualmente, acesse o container do serviço `
 docker-compose exec app sh
 go test -v -count=1 ./...
 ```
+
+## Contato
+Para entrar em contato com o desenvolvedor deste projeto:
+[gilbertomakiyama@gmail.com](mailto:gilbertomakiyama@gmail.com)
+
+## Agradecimentos
+Gostaria de expressar minha sincera gratidão a todo o time do curso de Pós-Graduação em Go Avançado da FullCycle pelo empenho, dedicação e excelência no ensino. Suas contribuições foram fundamentais para o meu desenvolvimento e sucesso. Muito obrigado!
