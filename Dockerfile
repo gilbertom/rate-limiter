@@ -13,7 +13,12 @@ COPY . .
 
 # Copie o arquivo .env para o diretório /cmd/rate-limiter
 COPY .env /cmd/rate-limiter/.env
-#COPY .env /app/cmd/rate-limiter/.env
 
-# Execute o teste
-CMD ["go", "test", "-v", "-count=1", "./..."]
+# Compilar a aplicação
+RUN go build -o /app/rate-limiter ./cmd/rate-limiter/main.go
+
+# Expor a porta que a aplicação irá rodar
+EXPOSE 8080
+
+CMD ["/app/rate-limiter"]
+
