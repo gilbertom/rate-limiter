@@ -20,11 +20,6 @@ func LoadEnv() dto.Env{
 		panic(err)
 	}
 
-	limitRequestsByIP, err := strconv.ParseBool(os.Getenv("LIMIT_REQUESTS_BY_IP"))
-	if err != nil {
-		panic(err)
-	}
-
 	timeToReleaseRequestsIP, err := strconv.Atoi(os.Getenv("TIME_TO_RELEASE_REQUESTS_IP"))
 	if err != nil {
 		panic(err)
@@ -41,7 +36,6 @@ func LoadEnv() dto.Env{
 		RedisPort:                  os.Getenv("REDIS_PORT"),
 		MaxRequestsAllowedByIP:     maxAllowedByIP,
 		MaxRequestsAllowedByToken:  maxAllowedByToken,
-		LimitRequestsByIP:          limitRequestsByIP,
 		OnRequestsExceededBlockBy:  os.Getenv("ON_REQUEST_EXCEEDED_BLOCK_BY"),
 		TimeToReleaseRequestsIP:    timeToReleaseRequestsIP,
 		TimeToReleaseRequestsToken: timeToReleaseRequestsToken,
